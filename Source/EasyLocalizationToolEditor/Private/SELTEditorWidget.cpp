@@ -874,7 +874,19 @@ void SELTEditorWidget::FillAvailableLangs(const TArray<FString>& Langs)
 	{
 		PreviewsAvailables.Add(MakeShared<FString>(Lang));
 	}
-	SelectedPreviewLang = PreviewsAvailables.Num() > 0 ? PreviewsAvailables[0] : nullptr;
+	// LOCAL PATCH (kept out of the upstream submodule repo): prefer "en" over the
+	// alphabetical-first available language. Otherwise every refresh / editor startup
+	// resets this dropdown (and the persisted LocalizationPreviewLang) to e.g. "da".
+	// Change TEXT("en") below if this project's primary language is not English.
+	SelectedPreviewLang = nullptr;
+	if (PreviewsAvailables.Num() > 0)
+	{
+		TSharedPtr<FString>* PreferredPreviewLang = PreviewsAvailables.FindByPredicate([](const TSharedPtr<FString>& Item) -> bool
+		{
+			return Item.IsValid() && *Item == TEXT("en");
+		});
+		SelectedPreviewLang = PreferredPreviewLang ? *PreferredPreviewLang : PreviewsAvailables[0];
+	}
 	if (WidgetController.IsValid())
 	{
 		WidgetController->OnLocalizationPreviewLangChanged(SelectedPreviewLang ? *SelectedPreviewLang : TEXT(""));
@@ -885,7 +897,16 @@ void SELTEditorWidget::FillAvailableLangs(const TArray<FString>& Langs)
 	{
 		LanguageOverridesAvailable.Add(MakeShared<FString>(Lang));
 	}
-	SelectedLanguageOverride = LanguageOverridesAvailable.Num() > 0 ? LanguageOverridesAvailable[0] : nullptr;
+	// LOCAL PATCH: prefer "en" over the alphabetical-first language for the startup override too.
+	SelectedLanguageOverride = nullptr;
+	if (LanguageOverridesAvailable.Num() > 0)
+	{
+		TSharedPtr<FString>* PreferredOverrideLang = LanguageOverridesAvailable.FindByPredicate([](const TSharedPtr<FString>& Item) -> bool
+		{
+			return Item.IsValid() && *Item == TEXT("en");
+		});
+		SelectedLanguageOverride = PreferredOverrideLang ? *PreferredOverrideLang : LanguageOverridesAvailable[0];
+	}
 	if (WidgetController.IsValid())
 	{
 		WidgetController->OnLocalizationOnFirstRunLangChanged(SelectedLanguageOverride ? *SelectedLanguageOverride : TEXT(""));
